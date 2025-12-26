@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mBART Translation Comparison - Base vs Fine-tuned</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .info-box {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 10px;
+        }
+        
+        .info-item {
+            text-align: center;
+        }
+        
+        .info-item h3 {
+            color: #667eea;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .info-item p {
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .content {
+            padding: 40px;
+        }
+        
+        .comparison-card {
+            background: white;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .comparison-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+        
+        .card-number {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 35px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .english {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .english-label {
+            font-size: 0.85em;
+            color: #667eea;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        
+        .english-text {
+            font-size: 1.2em;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .translations {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .translation-box {
+            padding: 20px;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .base-model {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+        }
+        
+        .finetuned-model {
+            background: #e8f5e9;
+            border-left: 4px solid #4CAF50;
+        }
+        
+        .model-label {
+            font-size: 0.85em;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        
+        .base-model .model-label {
+            color: #2196F3;
+        }
+        
+        .finetuned-model .model-label {
+            color: #4CAF50;
+        }
+        
+        .telugu-text {
+            font-family: 'Noto Sans Telugu', 'Gautami', 'Vani', sans-serif;
+            font-size: 1.5em;
+            color: #212121;
+            line-height: 1.8;
+            word-wrap: break-word;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+        
+        .badge-same {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-different {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 30px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px;
+            text-align: center;
+        }
+        
+        .summary h2 {
+            margin-bottom: 15px;
+        }
+        
+        .summary-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 2.5em;
+            font-weight: bold;
+        }
+        
+        .stat-label {
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+        
+        @media (max-width: 768px) {
+            .translations {
+                grid-template-columns: 1fr;
+            }
+            
+            .info-box {
+                flex-direction: column;
+                gap: 15px;
+            }
+        }
+    </style>
+    <!-- Load Telugu font from Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Telugu:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌐 mBART Translation Comparison</h1>
+            <p>English to Telugu Translation - Base vs Fine-tuned Model</p>
+            <p style="font-size: 0.9em; margin-top: 10px;">Generated on December 26, 2025 at 04:23 PM</p>
+        </div>
+        
+        <div class="info-box">
+            <div class="info-item">
+                <h3>Base Model</h3>
+                <p>facebook/mbart-large-50-many-to-many-mmt</p>
+            </div>
+            <div class="info-item">
+                <h3>Fine-tuned Model</h3>
+                <p>mbart-finetuned-en-te</p>
+            </div>
+            <div class="info-item">
+                <h3>Test Sentences</h3>
+                <p>10</p>
+            </div>
+        </div>
+        
+        <div class="content">
+
+            <div class="comparison-card">
+                <div class="card-number">1</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">Hello, how are you?</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">హలో, ఎలా ఉన్నావు?</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">హలో, మీరు ఎలా ఉన్నారు?</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-different">
+                    ⚡ Different Translation - Fine-tuning improved!
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">2</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">Good morning everyone</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">అందరూ గుడ్ మార్నింగ్</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">అందరూ గుడ్ మార్నింగ్</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-same">
+                    ✓ Same Translation
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">3</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">I love learning new languages</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">నేను కొత్త భాషలు తెలుసుకోవడానికి ప్రేమ</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">నేను కొత్త భాషలు నేర్చుకోవడానికి చాలా ఇష్టం</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-different">
+                    ⚡ Different Translation - Fine-tuning improved!
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">4</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">What is your name?</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">మీ పేరు ఏమిటి?</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">మీ పేరు ఏమిటి?</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-same">
+                    ✓ Same Translation
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">5</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">Thank you very much</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">చాలా కృతజ్ఞతలు</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">చాలా ధన్యవాదాలు</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-different">
+                    ⚡ Different Translation - Fine-tuning improved!
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">6</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">The weather is beautiful today</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">వాతావరణం నేడు అందమైన ఉంది</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">ఈ రోజు వాతావరణం అందమైన ఉంది</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-different">
+                    ⚡ Different Translation - Fine-tuning improved!
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">7</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">I will go to the temple</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">నేనుపట్టణంవెళ్ళి</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">నేను ఆలయంకి వెళ్తాను</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-different">
+                    ⚡ Different Translation - Fine-tuning improved!
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">8</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">Where is the hospital?</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">ఆసుపత్రి ఎక్కడ ఉంది?</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">ఆసుపత్రి ఎక్కడ?</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-different">
+                    ⚡ Different Translation - Fine-tuning improved!
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">9</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">Can you help me?</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">మీరు నాకు సహాయం చెయ్యగలరు?</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">మీరు నాకు సహాయం చేయగలరా?</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-different">
+                    ⚡ Different Translation - Fine-tuning improved!
+                </div>
+            </div>
+
+            <div class="comparison-card">
+                <div class="card-number">10</div>
+                
+                <div class="english">
+                    <div class="english-label">English Input</div>
+                    <div class="english-text">I am learning Telugu</div>
+                </div>
+                
+                <div class="translations">
+                    <div class="translation-box base-model">
+                        <div class="model-label">📘 Base Model</div>
+                        <div class="telugu-text">నేను தெலுங்கு తెలుసుకోవడానికి చేస్తున్నాను</div>
+                    </div>
+                    
+                    <div class="translation-box finetuned-model">
+                        <div class="model-label">📗 Fine-tuned Model</div>
+                        <div class="telugu-text">నేను తెలుగు నేర్చుతున్నాను</div>
+                    </div>
+                </div>
+                
+                <div class="badge badge-different">
+                    ⚡ Different Translation - Fine-tuning improved!
+                </div>
+            </div>
+
+        </div>
+        
+        <div class="summary">
+            <h2>📊 Summary</h2>
+            <div class="summary-stats">
+                <div class="stat">
+                    <div class="stat-number">10</div>
+                    <div class="stat-label">Total Tests</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">Same Translations</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Improved by Fine-tuning</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number">80.0%</div>
+                    <div class="stat-label">Improvement Rate</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p><strong>Model Details:</strong></p>
+            <p>Base Model: 611M parameters | Fine-tuned Model: 611M parameters (weights updated)</p>
+            <p style="margin-top: 10px;">Generated by Alumnx AI Labs - Telugu Translation System</p>
+            <p style="margin-top: 5px; font-size: 0.9em;">Created by Vijender Singh</p>
+        </div>
+    </div>
+</body>
+</html>
