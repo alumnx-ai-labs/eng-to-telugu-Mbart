@@ -1,6 +1,8 @@
 import torch
 import argparse
+import os
 from transformers import MBartForConditionalGeneration, MBart50TokenizerFast
+from peft import PeftModel
 
 MODEL_DIR = "./mbart-finetuned-en-te"
 BASE_MODEL = "facebook/mbart-large-50-many-to-many-mmt"
@@ -8,15 +10,21 @@ BASE_MODEL = "facebook/mbart-large-50-many-to-many-mmt"
 def load_model(model_path):
     print(f"info: loading model from {model_path}...")
     try:
-        tokenizer = MBart50TokenizerFast.from_pretrained(model_path)
-        model = MBartForConditionalGeneration.from_pretrained(model_path)
-    except OSError:
+        if os.path.exists(os.path.join(model_path, "adapter_config.json")):
+            # LoRA adapter: load base model, attach adapter, merge for fast inference
+            tokenizer = MBart50TokenizerFast.from_pretrained(model_path)
+            model = MBartForConditionalGeneration.from_pretrained(BASE_MODEL)
+            model = PeftModel.from_pretrained(model, model_path).merge_and_unload()
+        else:
+            tokenizer = MBart50TokenizerFast.from_pretrained(model_path)
+            model = MBartForConditionalGeneration.from_pretrained(model_path)
+    except (OSError, ValueError):
         print(f"warning: fine-tuned model not found at {model_path}. loading base model '{BASE_MODEL}' instead.")
         tokenizer = MBart50TokenizerFast.from_pretrained(BASE_MODEL)
         model = MBartForConditionalGeneration.from_pretrained(BASE_MODEL)
         
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = model.to(device)
+    model = model.to(device).eval()
     tokenizer.src_lang = "en_XX"
     return model, tokenizer, device
 
@@ -26,7 +34,7 @@ def translate(text, model, tokenizer, device, target_lang="te_IN"):
     # Generate translation
     generated_ids = model.generate(
         **inputs,
-        forced_bos_token_id=tokenizer.lang_code_to_id[target_lang],
+        forced_bos_token_id=tokenizer.convert_tokens_to_ids(target_lang),
         max_length=128,
         num_beams=5,
         early_stopping=True

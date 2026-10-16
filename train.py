@@ -11,6 +11,7 @@ from transformers import (
     DataCollatorForSeq2Seq
 )
 from sklearn.model_selection import train_test_split
+from peft import LoraConfig, get_peft_model, TaskType
 
 # Constants
 MODEL_NAME = "facebook/mbart-large-50-many-to-many-mmt"
@@ -45,7 +46,7 @@ def prepare_dataset():
     
     return train_ds, val_ds
 
-def train(epochs=10, batch_size=8, gradient_accumulation_steps=1):
+def train(epochs=5, batch_size=8, gradient_accumulation_steps=1):
     # Check device
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"info: using device: {device}")
@@ -57,14 +58,26 @@ def train(epochs=10, batch_size=8, gradient_accumulation_steps=1):
     
     tokenizer.src_lang = "en_XX"
     tokenizer.tgt_lang = "te_IN"
+
+    # Apply LoRA (only small adapter layers are trained, base weights stay frozen)
+    lora_config = LoraConfig(
+        r=8,
+        lora_alpha=16,
+        target_modules=["q_proj", "v_proj"],
+        lora_dropout=0.05,
+        bias="none",
+        task_type=TaskType.SEQ_2_SEQ_LM,
+    )
+    model = get_peft_model(model, lora_config)
+    model.print_trainable_parameters()
     
     # Prepare Data
     train_ds, val_ds = prepare_dataset()
     
     def preprocess_function(examples):
         inputs = tokenizer(examples["english"], max_length=128, truncation=True, padding="max_length")
-        targets = tokenizer(examples["telugu"], max_length=128, truncation=True, padding="max_length")
-        inputs["labels"] = targets["input_ids"]
+        targets = tokenizer(text_target=examples["telugu"], max_length=128, truncation=True, padding="max_length")
+        inputs["labels"] = [[(x if x != tokenizer.pad_token_id else -100) for x in ids] for ids in targets["input_ids"]]
         return inputs
     
     print("info: tokenizing data...")
@@ -76,7 +89,7 @@ def train(epochs=10, batch_size=8, gradient_accumulation_steps=1):
     
     training_args = Seq2SeqTrainingArguments(
         output_dir="./checkpoints",
-        learning_rate=5e-5,
+        learning_rate=2e-4,
         per_device_train_batch_size=batch_size,
         per_device_eval_batch_size=batch_size,
         gradient_accumulation_steps=gradient_accumulation_steps,
@@ -99,7 +112,7 @@ def train(epochs=10, batch_size=8, gradient_accumulation_steps=1):
         args=training_args,
         train_dataset=tokenized_train,
         eval_dataset=tokenized_val,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         data_collator=data_collator,
     )
     
@@ -113,7 +126,7 @@ def train(epochs=10, batch_size=8, gradient_accumulation_steps=1):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs")
+    parser.add_argument("--epochs", type=int, default=5, help="Number of epochs")
     parser.add_argument("--batch_size", type=int, default=8, help="Batch size per device")
     args = parser.parse_args()
     
