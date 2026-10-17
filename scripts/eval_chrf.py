@@ -14,12 +14,9 @@ ref = [x["telugu"] for x in val]
 for name, path in [("base", "/nonexistent"), ("adapter", "./mbart-finetuned-en-te")]:
     m, t, d = load_model(path)
     hyp = [translate(s, m, t, d) for s in src]
-    print("
-==", name, "chrF", round(sacrebleu.corpus_chrf(hyp, [ref]).score, 1),
+    print("\n==", name, "chrF", round(sacrebleu.corpus_chrf(hyp, [ref]).score, 1),
           "BLEU", round(sacrebleu.corpus_bleu(hyp, [ref]).score, 1))
     for s, h, rf in list(zip(src, hyp, ref))[:5]:
-        print(" EN: ", s, "
- HYP:", h, "
- REF:", rf)
+        print(" EN: ", s, "\n HYP:", h, "\n REF:", rf)
     del m
     torch.cuda.empty_cache()

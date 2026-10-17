@@ -21,7 +21,6 @@ for name, path in [("ADAPTER", "./mbart-finetuned-en-te"), ("BASE", "/nonexisten
     torch.cuda.empty_cache()
 
 for i, s in enumerate(sents):
-    print("
-EN     :", s)
+    print("\nEN     :", s)
     print("ADAPTER:", out["ADAPTER"][i])
     print("BASE   :", out["BASE"][i])
