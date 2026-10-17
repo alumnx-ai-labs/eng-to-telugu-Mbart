@@ -41,8 +41,10 @@ def train_qlora(epochs=5, batch_size=8):
     tokenizer.src_lang = "en_XX"
     tokenizer.tgt_lang = "te_IN"
 
-    # Prepare the quantized model for training (also enables gradient checkpointing)
-    model = prepare_model_for_kbit_training(model)
+    # Prepare the quantized model for training. Gradient checkpointing is switched off: with this
+    # torch/transformers combination it breaks the backward pass ("element 0 of tensors does not
+    # require grad"), and a 4-bit model leaves plenty of GPU memory without it.
+    model = prepare_model_for_kbit_training(model, use_gradient_checkpointing=False)
     model.config.use_cache = False
 
     # Apply LoRA (same config as train.py)
