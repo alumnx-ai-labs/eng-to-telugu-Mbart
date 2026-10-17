@@ -1,0 +1,4 @@
+# Only needed for quantization (quantize_compare.py) and QLoRA (train_qlora.py).
+# After installing, re-check that torch was not replaced:
+#   python -c "import torch;print(torch.__version__)"   (should still show 2.5.1+cu121)
+bitsandbytes>=0.45.0

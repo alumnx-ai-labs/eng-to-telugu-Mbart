@@ -211,3 +211,24 @@ export HF_HOME=~/mbart/hf_cache
 python train.py --epochs 5 --batch_size 8
 python inference.py --text "How are you?"
 ```
+
+## Other methods (one script each)
+
+| Method | Command | Output folder |
+|---|---|---|
+| Full fine-tuning (all weights) | `python train_full.py --epochs 5` (options: `--batch_size`, `--grad_accum`, `--lr`, `--optim adafactor`, `--grad_ckpt`) | `./mbart-full-finetuned-en-te` |
+| LoRA | `python train.py --epochs 5 --batch_size 8` | `./mbart-finetuned-en-te` |
+| QLoRA (4-bit base + LoRA) | `pip install -r requirements-quant.txt` then `python train_qlora.py --epochs 5` | `./mbart-qlora-en-te` |
+| Quantization comparison (fp16 / 8-bit / 4-bit, base model) | `pip install -r requirements-quant.txt` then `python quantize_compare.py` | none (prints a table) |
+
+Run a saved model with `inference.py`:
+
+```bash
+python inference.py --model_dir ./mbart-full-finetuned-en-te --text "How are you?"
+python inference.py --model_dir ./mbart-finetuned-en-te --text "How are you?"
+python inference.py --model_dir ./mbart-qlora-en-te --text "How are you?"
+```
+
+Full fine-tuning needs roughly 12-14 GB on a 16 GB T4, so run it with the GPU to yourself. On CUDA OOM use `--batch_size 2 --grad_accum 8`, `--grad_ckpt`, or `--optim adafactor`.
+
+Note: `train_full.py`, `train_qlora.py` and `quantize_compare.py` have not yet been run on the T4.
